@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🌤️ 오늘의 날씨</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#fff9fb;
+      --card:#ffffff;
+      --ink:#2b2b2b;
+      --sub:#6b7280;
+      --pink:#ffdbe7;
+      --mint:#d5fff3;
+      --yellow:#fff3b0;
+      --blue:#dff1ff;
+      --accent:#ff7aa2;
+      --shadow: 0 8px 24px rgba(255,122,162,.18);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Nunito","Jua",system-ui,-apple-system;
+      color:var(--ink);
+      background: radial-gradient(1200px 800px at 10% -10%, var(--pink), transparent 60%),
+                  radial-gradient(900px 700px at 110% 20%, var(--mint), transparent 55%),
+                  var(--bg);
+    }
+    header{
+      padding:24px 16px 12px;
+      text-align:center;
+    }
+    h1{
+      margin:0;
+      font-family:"Jua", "Nunito";
+      font-size: clamp(28px, 4.5vw, 44px);
+      letter-spacing:0.5px;
+    }
+    .subtitle{
+      margin-top:6px;
+      color:var(--sub);
+      font-size:14px;
+    }
+    .app{
+      max-width:980px;
+      margin:16px auto 40px;
+      padding:0 16px 32px;
+    }
+    .toolbar{
+      display:grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap:10px;
+      align-items:center;
+      background:var(--card);
+      padding:12px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position: sticky; top:8px;
+    }
+    .search{
+      display:flex; gap:8px; align-items:center;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:2px solid #f0e6ea;
+      background:#fff;
+      font-size:16px;
+      outline:none;
+    }
+    button{
+      border:0; cursor:pointer; font-weight:800;
+      padding:11px 14px; border-radius:12px;
+      background:var(--accent); color:#fff; box-shadow: var(--shadow);
+      transition: transform .04s ease;
+    }
+    button:active{ transform: translateY(1px) }
+    .ghost{
+      background:#00000008; color:#222; border:2px dashed #ffd0e0;
+    }
+    .unit-toggle{
+      background:#fff; color:#222; border:2px solid #ffe3ef;
+    }
+    .pill{
+      padding:8px 12px; border-radius:999px; background:#00000008; font-weight:700; font-size:12px;
+      border:2px dashed #e6f0ff;
+    }
+    .grid{
+      display:grid; gap:16px; margin-top:16px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+    .card{
+      background:var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .current{ grid-column: span 12; display:grid; gap:16px; grid-template-columns: 1fr; }
+    @media(min-width:840px){
+      .current{ grid-template-columns: 1.4fr 1fr; }
+    }
+    .big{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      background:linear-gradient(135deg, var(--blue), #fff);
+      border-radius:16px; padding:18px;
+    }
+    .temp{
+      font-family:"Jua";
+      font-size: clamp(42px, 7vw, 72px);
+      line-height:1;
+    }
+    .emoji{
+      font-size: clamp(48px, 9vw, 88px);
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.08));
+    }
+    .label{ color:var(--sub); font-size:13px }
+    .kv{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .kv .item{ background:#fff; border:2px dashed #e9eef7; border-radius:14px; padding:10px; }
+    .kv .name{ font-size:12px; color:var(--sub) }
+    .kv .val{ font-weight:900; font-size:16px; margin-top:4px }
+    .hourly{
+      overflow-x:auto; display:flex; gap:10px; padding-bottom:6px;
+    }
+    .chip{
+      min-width:90px; text-align:center; background:#fff; border:2px solid #f2f6ff;
+      border-radius:16px; padding:10px 8px;
+    }
+    .chip .t{ font-weight:900; font-size:16px }
+    .emoji-sm{ font-size:28px }
+    .days{ display:grid; grid-template-columns: repeat( auto-fit, minmax(160px,1fr) ); gap:12px }
+    .day{ padding:12px; border-radius:16px; border:2px dashed #e6ffe6; background:linear-gradient(180deg,#f8fff8,#fff) }
+    .day h4{ margin:0 0 6px 0 }
+    .muted{ color:var(--sub); font-size:12px }
+    .footer{
+      text-align:center; color:var(--sub); margin-top:18px; font-size:12px;
+    }
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform: translateX(-50%);
+      background:#111; color:#fff; padding:10px 14px; border-radius:999px; font-size:13px; display:none;
+    }
+    .loader{
+      display:none; gap:8px; align-items:center; font-weight:900; color:#ff5e93;
+    }
+    .loader .dot{ width:8px; height:8px; border-radius:50%; background:#ff9fc0; animation:b 1s infinite alternate; }
+    .loader .dot:nth-child(2){ animation-delay:.15s}
+    .loader .dot:nth-child(3){ animation-delay:.3s}
+    @keyframes b { to{ transform: translateY(-5px); background:#ffd0e4 } }
+    .badge{
+      display:inline-flex; align-items:center; gap:6px; background:#fff; border:2px solid #ffe8f2;
+      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:900;
+    }
+    .hint{ font-size:12px; color:var(--sub); margin-top:6px }
+    .hr{ height:1px; background:#00000010; margin:10px 0 0 }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌈 오늘의 날씨</h1>
+  </header>
+
+  <main class="app">
+    <div class="toolbar">
+      <div class="search">
+        <input id="q" type="text" placeholder="도시/지역 검색 (예: Seoul, Busan, Tokyo, 37.57,126.98)" />
+        <button id="btnSearch">🔍 검색</button>
+      </div>
+      <button id="btnGeo" class="ghost">📍 내 위치</button>
+      <button id="btnUnit" class="unit-toggle" aria-pressed="false">℃ / ℉</button>
+      <div class="loader" id="loader" aria-live="polite"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 불러오는 중</div>
+    </div>
+
+    <div class="hint">💡 팁: 최근 검색은 자동 저장돼요. 새로고침해도 마지막 도시를 불러옵니다.</div>
+
+    <section class="grid">
+      <article class="current card" id="current">
+        <!-- 현재 날씨 카드 렌더 -->
+      </article>
+
+      <article class="card" style="grid-column: span 12;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <h3 style="margin:6px 0">🕒 시간별 예보</h3>
+          <span class="badge">강수확률·풍속·체감온도 포함</span>
+        </div>
+        <div id="hourly" class="hourly"></div>
+      </article>
+
+      <article class="card" style="grid-column: span 12;">
+        <h3 style="margin:6px 0 10px">📅 5일 예보</h3>
+        <div id="days" class="days"></div>
+      </article>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast">문구</div>
+
+  <script>
+    // ==== 설정 ====
+    const API_KEY = "af2230d3dca84e47abe22900250911"; // 사용자가 제공한 키
+    const BASE = "https://api.weatherapi.com/v1";
+    let useCelsius = true;
+
+    // ==== 유틸 ====
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    function toast(msg){
+      const el = $("#toast");
+      el.textContent = msg;
+      el.style.display = "inline-block";
+      setTimeout(()=> el.style.display = "none", 1800);
+    }
+
+    function showLoader(v){
+      $("#loader").style.display = v ? "flex" : "none";
+    }
+
+    function emojiFor(condition, isDay){
+      const c = (condition||"").toLowerCase();
+      if(c.includes("thunder")) return "⛈️";
+      if(c.includes("snow") || c.includes("sleet") || c.includes("blizzard")) return "❄️";
+      if(c.includes("ice") || c.includes("hail")) return "🧊";
+      if(c.includes("rain") || c.includes("drizzle")) return isDay ? "🌦️" : "🌧️";
+      if(c.includes("mist") || c.includes("fog")) return "🌫️";
+      if(c.includes("overcast")) return "☁️";
+      if(c.includes("cloud")) return isDay ? "⛅" : "☁️";
+      if(c.includes("clear") || c.includes("sunny")) return isDay ? "☀️" : "🌙";
+      return isDay ? "🌤️" : "🌥️";
+    }
+
+    function fmtTemp(v){
+      return useCelsius ? Math.round(v) + "°C" : Math.round(v * 9/5 + 32) + "°F";
+    }
+    function fmtSpeed(kph){
+      return useCelsius ? `${Math.round(kph)} km/h` : `${Math.round(kph/1.609)} mph`;
+    }
+    function dayName(dateStr){
+      const d = new Date(dateStr.replace(/-/g,'/'));
+      return ["일","월","화","수","목","금","토"][d.getDay()];
+    }
+    function hhmm(localtime){
+      // localtime like "2025-11-09 13:00"
+      return localtime.split(" ")[1]?.slice(0,5) ?? "";
+    }
+
+    // ==== 렌더 ====
+    function renderCurrent(data){
+      const { location, current, forecast } = data;
+      const cond = current.condition?.text || "";
+      const isDay = !!current.is_day;
+      const bigEmoji = emojiFor(cond, isDay);
+      const rain = Number(current.precip_mm || 0);
+      const humidity = current.humidity;
+      const wind = current.wind_kph;
+      const feel = current.feelslike_c;
+      const uv = current.uv;
+      const aqi = forecast?.forecastday?.[0]?.day?.air_quality; // 일부 플랜에서 제공 안 됨
+
+      $("#current").innerHTML = `
+        <div class="big">
+          <div>
+            <div class="pill">📍 ${location.name}, ${location.country}</div>
+            <div style="margin-top:8px; font-weight:800">${cond}</div>
+            <div class="label">${location.localtime} (현지)</div>
+          </div>
+          <div class="emoji" aria-hidden="true">${bigEmoji}</div>
+        </div>
+        <div style="display:grid; gap:14px;">
+          <div class="temp">${fmtTemp(current.temp_c)}</div>
+          <div class="kv">
+            <div class="item">
+              <div class="name">체감온도</div>
+              <div class="val">🥶 ${fmtTemp(feel)}</div>
+            </div>
+            <div class="item">
+              <div class="name">강수량</div>
+              <div class="val">🌧️ ${rain.toFixed(1)} mm</div>
+            </div>
+            <div class="item">
+              <div class="name">습도</div>
+              <div class="val">💧 ${humidity}%</div>
+            </div>
+            <div class="item">
+              <div class="name">풍속</div>
+              <div class="val">💨 ${fmtSpeed(wind)}</div>
+            </div>
+            <div class="item">
+              <div class="name">자외선</div>
+              <div class="val">🌞 ${uv}</div>
+            </div>
+            <div class="item">
+              <div class="name">일출 · 일몰</div>
+              <div class="val">🌅 ${forecast?.forecastday?.[0]?.astro?.sunrise ?? "-"} · 🌇 ${forecast?.forecastday?.[0]?.astro?.sunset ?? "-"}</div>
+            </div>
+          </div>
+          ${aqi ? `<div class="hr"></div><div class="muted">공기질(참고) · PM2.5: ${aqi.pm2_5?.toFixed?.(1) ?? "-"}, PM10: ${aqi.pm10?.toFixed?.(1) ?? "-"}</div>`:""}
+        </div>
+      `;
+    }
+
+    function renderHourly(data){
+      const f0 = data.forecast?.forecastday?.[0];
+      const hours = f0?.hour || [];
+      const nowH = new Date(data.location.localtime.replace(/-/g,'/')).getHours();
+      const html = hours.map(h=>{
+        const t = useCelsius ? h.temp_c : (h.temp_c*9/5+32);
+        const feel = useCelsius ? h.feelslike_c : (h.feelslike_c*9/5+32);
+        const rainChance = h.chance_of_rain ?? h.will_it_rain*100 ?? 0;
+        const isDay = h.is_day===1;
+        const em = emojiFor(h.condition?.text || "", isDay);
+        const mark = (new Date(h.time.replace(/-/g,'/')).getHours()===nowH) ? 'style="border-color:#ffc7dd; box-shadow:0 6px 18px rgba(255,122,162,.12)"' : "";
+        return `
+          <div class="chip" ${mark}>
+            <div class="muted">${hhmm(h.time)}</div>
+            <div class="emoji-sm" aria-hidden="true">${em}</div>
+            <div class="t">${Math.round(t)}°${useCelsius?"C":"F"}</div>
+            <div class="muted">체감 ${Math.round(feel)}°</div>
+            <div class="muted">☔ ${rainChance}% · 💨 ${Math.round(h.wind_kph)}kph</div>
+          </div>
+        `;
+      }).join("");
+      $("#hourly").innerHTML = html || `<div class="muted">시간별 예보를 불러올 수 없어요.</div>`;
+    }
+
+    function renderDays(data){
+      const days = data.forecast?.forecastday || [];
+      const html = days.slice(0,5).map(d=>{
+        const em = emojiFor(d.day?.condition?.text || "", true);
+        const tmaxC = d.day?.maxtemp_c ?? 0;
+        const tminC = d.day?.mintemp_c ?? 0;
+        const tmax = useCelsius ? tmaxC : (tmaxC*9/5+32);
+        const tmin = useCelsius ? tminC : (tminC*9/5+32);
+        return `
+          <div class="day">
+            <h4>${dayName(d.date)}요일 <span class="muted">${d.date}</span></h4>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="font-size:34px">${em}</div>
+              <div>
+                <div style="font-weight:900">${d.day?.condition?.text || "-"}</div>
+                <div class="muted">최고 ${Math.round(tmax)}° · 최저 ${Math.round(tmin)}° · ☔ ${d.day?.daily_chance_of_rain ?? 0}%</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+      $("#days").innerHTML = html || `<div class="muted">일별 예보가 없습니다.</div>`;
+    }
+
+    function renderAll(data){
+      renderCurrent(data);
+      renderHourly(data);
+      renderDays(data);
+    }
+
+    // ==== API ====
+    async function fetchForecast(query){
+      // forecast.json includes: current + forecast
+      const url = `${BASE}/forecast.json?key=${encodeURIComponent(API_KEY)}&q=${encodeURIComponent(query)}&days=5&aqi=yes&alerts=no&lang=ko`;
+      const res = await fetch(url);
+      if(!res.ok){
+        const t = await res.text();
+        throw new Error(`요청 실패(${res.status}) ${t}`);
+      }
+      return res.json();
+    }
+
+    // ==== 동작 ====
+    async function load(query, silent=false){
+      try{
+        if(!silent) showLoader(true);
+        const data = await fetchForecast(query);
+        localStorage.setItem("last_query", data.location.lat + "," + data.location.lon);
+        renderAll(data);
+      }catch(err){
+        console.error(err);
+        toast("불러오지 못했어요. 검색어를 바꿔보세요!");
+      }finally{
+        showLoader(false);
+      }
+    }
+
+    async function init(){
+      // 단위 토글
+      $("#btnUnit").addEventListener("click", ()=>{
+        useCelsius = !useCelsius;
+        $("#btnUnit").setAttribute("aria-pressed", String(!useCelsius));
+        // 마지막 데이터 재요청 없이 값 환산 렌더를 위해 last_query로 재호출
+        const q = localStorage.getItem("last_query");
+        if(q){ load(q, true); }
+      });
+
+      // 검색
+      $("#btnSearch").addEventListener("click", ()=>{
+        const q = $("#q").value.trim();
+        if(q){ load(q); }
+      });
+      $("#q").addEventListener("keydown", e=>{
+        if(e.key === "Enter"){
+          const q = $("#q").value.trim();
+          if(q){ load(q); }
+        }
+      });
+
+      // 내 위치
+      $("#btnGeo").addEventListener("click", ()=>{
+        if(!navigator.geolocation){
+          toast("브라우저가 위치 제공을 지원하지 않아요.");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(pos=>{
+          const { latitude, longitude } = pos.coords;
+          load(`${latitude},${longitude}`);
+        }, err=>{
+          console.warn(err);
+          toast("위치 접근이 거부되었어요.");
+        }, { enableHighAccuracy:true, timeout:8000, maximumAge:300000 });
+      });
+
+      // 최초 로드: 마지막 검색 또는 서울
+      const last = localStorage.getItem("last_query");
+      if(last){ load(last); }
+      else { load("Seoul"); }
+    }
+
+    init();
+  </script>
+</body>
+</html>
